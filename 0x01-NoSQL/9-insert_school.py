@@ -9,5 +9,5 @@ def insert_school(mongo_collection, **kwargs):
     :mongo_collection: the database collection
     :return: new _id
     """
-    result_ = mongo_collection.insertOne(kwargs).inserted_id
-    return result_
+    result = mongo_collection.insert_one(kwargs).inserted_id
+    return result
