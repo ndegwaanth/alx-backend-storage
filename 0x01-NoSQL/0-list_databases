@@ -1,0 +1,4 @@
+#!/bin/bash
+# MongoDB shell command to list all database
+
+mongo --eval "db.adminCommand('listDatabases')"
