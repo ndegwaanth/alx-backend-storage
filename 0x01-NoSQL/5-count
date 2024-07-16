@@ -1,0 +1,2 @@
+// display number of document in collection school
+db.school.countDocuments({})
