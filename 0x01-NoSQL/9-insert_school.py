@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ Insert a document in Python"""
+from pymongo import MongoClient
 
 
 def insert_school(mongo_collection, **kwargs):
@@ -8,5 +9,5 @@ def insert_school(mongo_collection, **kwargs):
     :mongo_collection: the database collection
     :return: new _id
     """
-    result = mongo_collection.insertOne(kwargs)
-    return result.inserted_id
+    result_ = mongo_collection.insertOne(kwargs).inserted_id
+    return result_
