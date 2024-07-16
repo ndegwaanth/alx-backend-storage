@@ -9,4 +9,4 @@ def school_by_topic(mongo_collection, topic):
     :param:topic:(string) will be topic searched
     :return: list of school
     """
-    return list(mongo_collection.find({"topic": topic}))
+    return list(mongo_collection.find({"topics": topic}))
