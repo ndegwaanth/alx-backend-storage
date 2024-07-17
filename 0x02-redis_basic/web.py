@@ -26,4 +26,5 @@ def get_page(url: str) -> str:
     resp = requests.get(url)
     info = resp.text
     r.setex(url, 10, info)
+
     return info
