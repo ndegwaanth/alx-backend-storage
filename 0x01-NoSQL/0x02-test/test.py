@@ -2,7 +2,6 @@ from pymongo import MongoClient
 import json
 
 link = "mongodb+srv://ndegwaanth:<password>@cluster0.9eytvzr.mongodb.net/Database1?retryWrites=true&w=majority&appName=Cluster0"
-# cluster = "mongodb+srv://ndegwaanth:<bsitc01/0945/2021>@cluster0.crseyiw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 client = MongoClient(link)
 
