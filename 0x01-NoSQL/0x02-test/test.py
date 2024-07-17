@@ -1,9 +1,7 @@
 from pymongo import MongoClient
 import json
 
-link = "mongodb+srv://ndegwaanth:bsitc01@cluster0.9eytvzr.mongodb.net/Database1?retryWrites=true&w=majority&appName=Cluster0"
-# cluster = "mongodb+srv://ndegwaanth:<bsitc01/0945/2021>@cluster0.crseyiw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
+link = "{my mongodb connectio  url}"
 client = MongoClient(link)
 
 print(client.list_database_names())
