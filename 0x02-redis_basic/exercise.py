@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-"""
-Main file
-"""
 import redis
 import uuid
-from typing import Union, Callable, Optional
+import functools
+from typing import Callable, Optional, Union
 
 
 class Cache:
@@ -27,63 +24,40 @@ class Cache:
         self._redis.set(key, data)
         return key
 
-    def get(self, key: str, fn: Optional[Callable] = None) -> \
-            Union[str, bytes, int, float, None]:
+    def get(self, key: str) -> Optional[Union[str, bytes]]:
         """
-        Retrieve the value from Redis using the provided key and apply the
-        conversion function if provided.
-
-        Args:
-            key (str): The key to retrieve.
-            fn (Optional[Callable]): A callable to convert the data.
-
-        Returns:
-            Union[str, bytes, int, float, None]: The retrieved value or None if
-            the key does not exist.
-        """
-        data = self._redis.get(key)
-        if data is None:
-            return None
-        if fn:
-            return fn(data)
-        return data
-
-    def get_str(self, key: str) -> Optional[str]:
-        """
-        Retrieve the value from Redis as a string.
+        Retrieve the value from Redis using the provided key.
 
         Args:
             key (str): The key to retrieve.
 
         Returns:
-            Optional[str]: The retrieved string value or None if the key does
-            not exist.
+            Optional[Union[str, bytes]]: The retrieved value or None if the key
+            does not exist.
         """
-        return self.get(key, lambda d: d.decode('utf-8'))
-
-    def get_int(self, key: str) -> Optional[int]:
-        """
-        Retrieve the value from Redis as an integer.
-
-        Args:
-            key (str): The key to retrieve.
-
-        Returns:
-            Optional[int]: The retrieved integer value or None if the key does
-            not exist.
-        """
-        return self.get(key, int)
+        return self._redis.get(key)
 
 
-if __name__ == "__main__":
-    cache = Cache()
+def count_calls(method: Callable) -> Callable:
+    """
+    Decorator to count how many times a method of Cache class is called.
+    Uses Redis to store and increment the call count.
 
-    TEST_CASES = {
-        b"foo": None,
-        123: int,
-        "bar": lambda d: d.decode("utf-8")
-    }
+    Args:
+        method (Callable): The method to be decorated.
 
-    for value, fn in TEST_CASES.items():
-        key = cache.store(value)
-        assert cache.get(key, fn=fn) == value
+    Returns:
+        Callable: Decorated function that increments the count and calls the
+                  original method.
+    """
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        count_key = f"method_calls:{method.__qualname__}"
+        self._redis.incr(count_key)
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+# Applying the decorator to the store method of Cache
+Cache.store = count_calls(Cache.store)
