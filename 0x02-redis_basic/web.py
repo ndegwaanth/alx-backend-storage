@@ -1,39 +1,29 @@
-from functools import wraps
-import redis
+#!/usr/bin/env python3
+"""implements a web cache"""
 import requests
+import redis
 
 
-redis_client = redis.Redis()
-def cache_page(func):
-    @wraps(func)
-    def wrapper(url):
-        # Check if the result is cached in Redis
-        cached_result = redis_client.get(f"page_cache:{url}")
-        if cached_result:
-            return cached_result.decode('utf-8')
+r = redis.Redis()
 
-        # If not cached, call the original function
-        html_content = func(url)
 
-        # Cache the result with expiration time of 10 seconds
-        redis_client.set(f"page_cache:{url}", html_content, ex=10)
-
-        return html_content
-    
-    return wrapper
-
-@cache_page
 def get_page(url: str) -> str:
-    """
-    Fetches the HTML content of the specified URL.
-
-    Args:
-        url (str): The URL to fetch HTML content from.
-
-    Returns:
-        str: The HTML content of the URL.
-    """
-    # Fetch HTML content from the URL
-    response = requests.get(url)
-
-    return response.text
+    '''implements the cache'''
+    key = "count:{}".format(url)
+    '''
+    increment the count of how many times url has been visited
+    '''
+    r.incr(key)
+    cached_data = r.get(url)
+    '''
+    check if we have data associated with url in cache
+    '''
+    if cached_data is not None:
+        return cached_data.decode('utf-8')
+    '''
+    incase we have no data, query the url and add in cache for 10 seconds
+    '''
+    resp = requests.get(url)
+    info = resp.text
+    r.setex(url, 10, info)
+    return info

@@ -28,6 +28,10 @@ def count_calls(method: Callable) -> Callable:
 
 
 def call_history(method: Callable) -> Callable:
+    """
+    function that the decorator will return,
+    use rpush to append the input arguments
+    """
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         input_keys = "{}:inputs".format(method.__qualname__)
@@ -40,6 +44,9 @@ def call_history(method: Callable) -> Callable:
 
 
 def replay(method: Callable) -> None:
+    """
+    display the history of calls of a particular function.
+    """
     input_keys = "{}:inputs".format(method.__qualname__)
     output_keys = "{}:outputs".format(method.__qualname__)
     inputs = cache._redis.lrange(
@@ -57,12 +64,14 @@ def replay(method: Callable) -> None:
 class Cache():
     """redis class"""
     def __init__(self):
+        """initialization"""
         self._redis = redis.Redis()
         self._redis.flushdb()
 
     @call_history
     @count_calls
     def store(self, data: Union[str, int, float, bytes]) -> str:
+        """store the data"""
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         self._redis.rpush(':inputs', str(data))
@@ -70,13 +79,17 @@ class Cache():
         return key
 
     def get(self, key: str, fn: Callable = None) -> Union[int, str, None]:
+        """get the element of the key"""
         value = self._redis.get(key)
         if value is not None and fn is not None:
             return fn(value)
         return value
 
     def get_str(self, val: str) -> Union[str, None]:
+        """convert to string"""
         return str(val)
 
     def get_int(self, val: str) -> Union[int, None]:
+        """covert to int"""
+
         return int(val)
