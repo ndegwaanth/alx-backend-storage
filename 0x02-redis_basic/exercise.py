@@ -49,12 +49,12 @@ def replay(method: Callable) -> None:
     """
     input_keys = "{}:inputs".format(method.__qualname__)
     output_keys = "{}:outputs".format(method.__qualname__)
-    inputs = cache._redis.lrange(
-            "{}:inputs".format(cache.store.__qualname__), 0, -1)
-    outputs = cache._redis.lrange(
-            "{}:outputs".format(cache.store.__qualname__), 0, -1)
+    inputs = Cache._redis.lrange(
+            "{}:inputs".format(Cache.store.__qualname__), 0, -1)
+    outputs = Cache._redis.lrange(
+            "{}:outputs".format(Cache.store.__qualname__), 0, -1)
     values = dict(zip(inputs, outputs))
-    times = cache.get(cache.store.__qualname__)
+    times = Cache.get(Cache.store.__qualname__)
     print("Cache.store was called {} times:".format(times.decode('utf-8')))
     for key, value in values.items():
         print("Cache.store(*{}) -> {}".format(
