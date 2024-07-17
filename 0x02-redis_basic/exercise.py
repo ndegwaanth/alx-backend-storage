@@ -1,63 +1,82 @@
+#!/usr/bin/env python3
+"""sample python redis implementation module"""
 import redis
 import uuid
-import functools
-from typing import Callable, Optional, Union
-
-
-class Cache:
-    def __init__(self):
-        """Initialize the Cache with a Redis client and flush the database."""
-        self._redis = redis.Redis()
-        self._redis.flushdb()
-
-    def store(self, data: Union[str, bytes, int, float]) -> str:
-        """
-        Store the given data in Redis with a randomly generated key.
-
-        Args:
-            data (Union[str, bytes, int, float]): The data to store.
-
-        Returns:
-            str: The randomly generated key.
-        """
-        key = str(uuid.uuid4())
-        self._redis.set(key, data)
-        return key
-
-    def get(self, key: str) -> Optional[Union[str, bytes]]:
-        """
-        Retrieve the value from Redis using the provided key.
-
-        Args:
-            key (str): The key to retrieve.
-
-        Returns:
-            Optional[Union[str, bytes]]: The retrieved value or None if the key
-            does not exist.
-        """
-        return self._redis.get(key)
+from typing import Callable, Union, Any
+from functools import wraps
 
 
 def count_calls(method: Callable) -> Callable:
-    """
-    Decorator to count how many times a method of Cache class is called.
-    Uses Redis to store and increment the call count.
-
+    """wrapper around Cache.store method
     Args:
-        method (Callable): The method to be decorated.
-
-    Returns:
-        Callable: Decorated function that increments the count and calls the
-                  original method.
-    """
-    @functools.wraps(method)
+        method-> function wrapped around this function
+    Return:
+        the calling method but first sets/increments the number
+        of times the function is called"""
+    @wraps(method)
     def wrapper(self, *args, **kwargs):
-        count_key = f"method_calls:{method.__qualname__}"
-        self._redis.incr(count_key)
+        """implements the wrapping functionality
+        https://docs.python.org/3.7/library/functools.html#functools.wraps
+        """
+        key = method.__qualname__
+        if self._redis.get(key) is None:
+            self._redis.set(key, 1)
+        else:
+            self._redis.incr(key, 1)
         return method(self, *args, **kwargs)
-
     return wrapper
 
 
-# Applying the decorator to the store method of Cache
-Cache.store = count_calls(Cache.store)
+def call_history(method: Callable) -> Callable:
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        input_keys = "{}:inputs".format(method.__qualname__)
+        output_keys = "{}:outputs".format(method.__qualname__)
+        self._redis.rpush(input_keys, str(args))
+        result = method(self, *args, **kwargs)
+        self._redis.rpush(output_keys, str(result))
+        return result
+    return wrapper
+
+
+def replay(method: Callable) -> None:
+    input_keys = "{}:inputs".format(method.__qualname__)
+    output_keys = "{}:outputs".format(method.__qualname__)
+    inputs = cache._redis.lrange(
+            "{}:inputs".format(cache.store.__qualname__), 0, -1)
+    outputs = cache._redis.lrange(
+            "{}:outputs".format(cache.store.__qualname__), 0, -1)
+    values = dict(zip(inputs, outputs))
+    times = cache.get(cache.store.__qualname__)
+    print("Cache.store was called {} times:".format(times.decode('utf-8')))
+    for key, value in values.items():
+        print("Cache.store(*{}) -> {}".format(
+            key.decode('utf-8'), value.decode('utf-8')))
+
+
+class Cache():
+    """redis class"""
+    def __init__(self):
+        self._redis = redis.Redis()
+        self._redis.flushdb()
+
+    @call_history
+    @count_calls
+    def store(self, data: Union[str, int, float, bytes]) -> str:
+        key = str(uuid.uuid4())
+        self._redis.set(key, data)
+        self._redis.rpush(':inputs', str(data))
+        self._redis.rpush(':outputs', key)
+        return key
+
+    def get(self, key: str, fn: Callable = None) -> Union[int, str, None]:
+        value = self._redis.get(key)
+        if value is not None and fn is not None:
+            return fn(value)
+        return value
+
+    def get_str(self, val: str) -> Union[str, None]:
+        return str(val)
+
+    def get_int(self, val: str) -> Union[int, None]:
+        return int(val)
